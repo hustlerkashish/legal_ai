@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { HashRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { HashRouter, Routes, Route, Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { ChatInterface } from './components/ChatInterface';
 import { DocumentAnalyzer } from './components/DocumentAnalyzer';
 import { Architecture } from './components/Architecture';
@@ -9,7 +9,13 @@ import { ScamCheck } from './components/ScamCheck';
 import { SnapSolve } from './components/SnapSolve';
 import { LegalFlow } from './components/LegalFlow';
 import { CaseStudies } from './components/CaseStudies';
-import { ScaleIcon, BookOpenIcon, FileTextIcon, MenuIcon, NetworkIcon, ArrowRightIcon, SparklesIcon, ShieldIcon, XIcon, CalculatorIcon, MapPinIcon, CameraScanIcon, FlowchartIcon, CaseStudyIcon } from './components/Icons';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { Login } from './components/Login';
+import { Signup } from './components/Signup';
+import { ForgotPassword } from './components/ForgotPassword';
+import { ScaleIcon, BookOpenIcon, FileTextIcon, MenuIcon, NetworkIcon, ArrowRightIcon, SparklesIcon, ShieldIcon, XIcon, CalculatorIcon, MapPinIcon, CameraScanIcon, FlowchartIcon, CaseStudyIcon, LogOutIcon } from './components/Icons';
+import { useAuth } from './contexts/AuthContext';
+import { logout } from './services/authService';
 
 // ── Welcome Splash Screen ──────────────────────────────────────────
 const WelcomeScreen = ({ onFinish }: { onFinish: () => void }) => {
@@ -101,6 +107,8 @@ const WelcomeScreen = ({ onFinish }: { onFinish: () => void }) => {
 
 const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (v: boolean) => void }) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const navItems = [
     { path: '/', label: 'Home', icon: <ScaleIcon /> },
     { path: '/chat', label: 'AI Legal Chat', icon: <BookOpenIcon /> },
@@ -127,11 +135,11 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (v: boolea
       {/* Sidebar */}
       <aside className={`
         fixed md:relative z-30 h-full w-[240px] transition-transform duration-300 ease-in-out
-        bg-bg border-r border-border
+        bg-bg border-r border-border flex flex-col
         ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
         {/* Logo */}
-        <div className="px-5 py-5 flex items-center justify-between">
+        <div className="px-5 py-5 flex items-center justify-between shrink-0">
           <Link to="/" className="flex items-center gap-2.5 group">
             <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform">
               <ScaleIcon className="text-bg w-4 h-4" />
@@ -144,7 +152,7 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (v: boolea
         </div>
 
         {/* Navigation */}
-        <nav className="px-3 mt-1">
+        <nav className="px-3 mt-1 flex-1 min-h-0 overflow-y-auto">
           <div className="space-y-0.5">
             {navItems.map((item) => {
               const isActive = location.pathname === item.path;
@@ -168,6 +176,20 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (v: boolea
             })}
           </div>
         </nav>
+        {user && (
+          <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-border bg-bg">
+            <p className="text-xs text-text-tertiary truncate px-2 mb-2" title={user.email ?? undefined}>
+              {user.displayName || user.email}
+            </p>
+            <button
+              onClick={() => logout().then(() => navigate('/login'))}
+              className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-[13px] text-text-secondary hover:bg-bg-secondary hover:text-text-primary transition-colors"
+            >
+              <LogOutIcon className="w-4 h-4" />
+              Log out
+            </button>
+          </div>
+        )}
       </aside>
     </>
   );
@@ -333,10 +355,33 @@ const LandingPage = () => {
     );
 }
 
-const App = () => {
+const AppLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  return (
+    <div className="flex h-screen w-full overflow-hidden bg-bg">
+      <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+      <main className="flex-1 flex flex-col h-full relative">
+        <header className="md:hidden bg-bg border-b border-border px-4 py-3 flex items-center justify-between z-10 shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
+              <ScaleIcon className="text-bg w-4 h-4" />
+            </div>
+            <span className="font-semibold text-text-primary text-sm">Legal AI</span>
+          </div>
+          <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-text-secondary hover:text-text-primary rounded-lg hover:bg-bg-secondary transition-colors">
+            <MenuIcon />
+          </button>
+        </header>
+        <div className="flex-1 overflow-hidden relative">
+          <Outlet />
+        </div>
+      </main>
+    </div>
+  );
+};
+
+const App = () => {
   const [showWelcome, setShowWelcome] = useState(() => {
-    // Only show on first visit per session
     if (sessionStorage.getItem('legalai-welcomed')) return false;
     return true;
   });
@@ -349,39 +394,23 @@ const App = () => {
   return (
     <HashRouter>
       {showWelcome && <WelcomeScreen onFinish={dismissWelcome} />}
-      <div className="flex h-screen w-full overflow-hidden bg-bg">
-        <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
-        
-        <main className="flex-1 flex flex-col h-full relative">
-          {/* Mobile Header */}
-          <header className="md:hidden bg-bg border-b border-border px-4 py-3 flex items-center justify-between z-10">
-            <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
-                  <ScaleIcon className="text-bg w-4 h-4" />
-                </div>
-                <span className="font-semibold text-text-primary text-sm">Legal AI</span>
-            </div>
-            <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-text-secondary hover:text-text-primary rounded-lg hover:bg-bg-secondary transition-colors">
-              <MenuIcon />
-            </button>
-          </header>
-
-          <div className="flex-1 overflow-hidden relative">
-            <Routes>
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/chat" element={<ChatInterface />} />
-              <Route path="/analyzer" element={<DocumentAnalyzer />} />
-              <Route path="/snap-solve" element={<SnapSolve />} />
-              <Route path="/calculators" element={<Calculators />} />
-              <Route path="/find-help" element={<FindHelp />} />
-              <Route path="/scam-check" element={<ScamCheck />} />
-              <Route path="/legal-flow" element={<LegalFlow />} />
-              <Route path="/case-studies" element={<CaseStudies />} />
-              <Route path="/architecture" element={<Architecture />} />
-            </Routes>
-          </div>
-        </main>
-      </div>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+          <Route index element={<LandingPage />} />
+          <Route path="chat" element={<ChatInterface />} />
+          <Route path="analyzer" element={<DocumentAnalyzer />} />
+          <Route path="snap-solve" element={<SnapSolve />} />
+          <Route path="calculators" element={<Calculators />} />
+          <Route path="find-help" element={<FindHelp />} />
+          <Route path="scam-check" element={<ScamCheck />} />
+          <Route path="legal-flow" element={<LegalFlow />} />
+          <Route path="case-studies" element={<CaseStudies />} />
+          <Route path="architecture" element={<Architecture />} />
+        </Route>
+      </Routes>
     </HashRouter>
   );
 };
