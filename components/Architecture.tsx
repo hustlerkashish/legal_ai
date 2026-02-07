@@ -1,62 +1,104 @@
 import React from 'react';
-import { NetworkIcon, BrainIcon, ScaleIcon, ShieldIcon } from './Icons';
+import { ScaleIcon, UserIcon } from './Icons';
+
+const TEAM_NAME = 'CodeX';
+const TEAM_MEMBERS = [
+  { name: 'Kashish Gandhi' },
+  { name: 'Harmit Jetani' },
+];
+
+const TECH_STACK = [
+  { category: 'Frontend', items: ['React 19', 'TypeScript', 'Vite', 'Tailwind CSS'] },
+  { category: 'AI', items: ['Google Gemini API'] },
+  { category: 'Auth', items: ['Firebase (Email/Password, Google)'] },
+  { category: 'Content', items: ['React Markdown', 'Mermaid', 'React Router'] },
+];
 
 export const Architecture = () => {
-    const layers = [
-        {
-            title: "Ingestion Layer",
-            desc: "Raw legal texts (IPC, Constitution, Case Laws) and user documents are ingested, cleaned, and processed.",
-            color: "bg-bg-elevated",
-            textColor: "text-text-primary",
-            borderColor: "border-border-light",
-        },
-        {
-            title: "Reasoning Core",
-            desc: "Gemini 2.5 Flash performs semantic analysis, context management, and adaptive complexity simplification.",
-            color: "bg-accent/10",
-            textColor: "text-text-primary",
-            borderColor: "border-accent/20",
-        },
-        {
-            title: "Presentation Layer",
-            desc: "React + Tailwind UI renders structured responses with citations, disclaimers, and complexity toggles.",
-            color: "bg-bg-secondary",
-            textColor: "text-text-primary",
-            borderColor: "border-border",
-        }
-    ];
+  return (
+    <div className="h-full overflow-y-auto bg-bg">
+      <div className="max-w-4xl mx-auto px-6 py-8">
+        {/* Header */}
+        <div className="mb-10">
+          <h1 className="text-2xl font-bold text-text-primary mb-1">About</h1>
+          <p className="text-sm text-text-tertiary">The team and tech behind Legal AI.</p>
+        </div>
 
-    return (
-        <div className="h-full overflow-y-auto bg-bg">
-            <div className="max-w-4xl mx-auto px-6 py-8">
-                {/* Header */}
-                <div className="mb-10">
-                    <h2 className="text-2xl font-bold text-text-primary mb-1">System Architecture</h2>
-                    <p className="text-sm text-text-tertiary">How Legal AI processes and delivers legal intelligence.</p>
+        {/* Team Section */}
+        <div className="mb-12">
+          <h2 className="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
+            <span className="w-8 h-8 rounded-lg bg-accent/10 text-accent flex items-center justify-center">
+              <ScaleIcon className="w-4 h-4" />
+            </span>
+            Team
+          </h2>
+          <div className="bg-bg-secondary border border-border rounded-2xl overflow-hidden">
+            {/* Team photo placeholder – replace src with /team.jpg when you have a photo */}
+            <div className="aspect-[2/1] bg-bg-tertiary border-b border-border flex items-center justify-center">
+              <div className="text-center">
+                     
+
+                
+              </div>
+              {/* Optional: use a real image when available
+              <img src="/team.jpg" alt="CodeX Team" className="w-full h-full object-cover" />
+              */}
+              <img src="/codeX.jpg" alt="CodeX Team" className="w-full h-full object-cover" />
+            </div>
+            <div className="p-5">
+              <p className="text-sm font-semibold text-text-primary mb-3">{TEAM_NAME}</p>
+              <div className="flex flex-wrap gap-3">
+                {TEAM_MEMBERS.map((member, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-bg border border-border rounded-xl text-text-primary"
+                  >
+                    <UserIcon className="w-4 h-4 text-accent flex-shrink-0" />
+                    <span className="text-sm font-medium">{member.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Tech Stack */}
+        <div className="mb-12">
+          <h2 className="text-lg font-semibold text-text-primary mb-4">Tech Stack</h2>
+          <div className="grid sm:grid-cols-2 gap-4">
+            {TECH_STACK.map((group, i) => (
+              <div
+                key={i}
+                className="bg-bg-secondary border border-border rounded-xl p-4 animate-slide-up"
+                style={{ animationDelay: `${i * 0.06}s` }}
+              >
+                <h3 className="text-xs font-semibold text-accent uppercase tracking-wider mb-3">
+                  {group.category}
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {group.items.map((tech, j) => (
+                    <span
+                      key={j}
+                      className="px-3 py-1.5 bg-bg border border-border rounded-lg text-sm text-text-primary"
+                    >
+                      {tech}
+                    </span>
+                  ))}
                 </div>
+              </div>
+            ))}
+          </div>
+        </div>
 
-                {/* Pipeline Layers */}
-                <div className="space-y-3 mb-12">
-                    {layers.map((layer, i) => (
-                        <div key={i} className={`${layer.color} ${layer.textColor} p-5 rounded-xl flex items-start gap-4 border ${layer.borderColor} animate-slide-up`} style={{animationDelay: `${i * 0.1}s`}}>
-                            <div className="w-8 h-8 rounded-lg bg-accent/20 text-accent flex items-center justify-center flex-shrink-0 text-sm font-bold mt-0.5">
-                                {i + 1}
-                            </div>
-                            <div>
-                                <h3 className="font-semibold text-sm mb-1">{layer.title}</h3>
-                                <p className="text-sm text-text-secondary leading-relaxed">{layer.desc}</p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                {/* Flow Diagram */}
-                <div className="bg-bg-secondary border border-border rounded-xl overflow-hidden mb-10">
-                    <div className="px-5 py-3.5 border-b border-border">
-                        <span className="text-sm font-medium text-text-secondary">Data Flow</span>
-                    </div>
-                    <div className="p-6 font-mono text-xs text-text-tertiary overflow-x-auto bg-bg">
-                        <pre className="leading-relaxed">{`
+        {/* Project Flow */}
+        <div className="mb-10">
+          <h2 className="text-lg font-semibold text-text-primary mb-4">How Legal AI Works</h2>
+          <div className="bg-bg-secondary border border-border rounded-xl overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-border">
+              <span className="text-sm font-medium text-text-secondary">Data Flow</span>
+            </div>
+            <div className="p-6 font-mono text-xs text-text-tertiary overflow-x-auto bg-bg">
+              <pre className="leading-relaxed">{`
     User / Citizen
         │
         ├── Natural Language Query ──► Chat Interface
@@ -85,30 +127,36 @@ export const Architecture = () => {
                                     Formatted Markdown
                                              │
                                          User
-                        `}</pre>
-                    </div>
-                </div>
-
-                {/* Implementation Details */}
-                <div className="bg-bg-secondary border border-border rounded-xl p-6">
-                    <h3 className="text-sm font-semibold text-text-primary mb-4">Implementation Details</h3>
-                    <div className="space-y-3">
-                        {[
-                            { label: "RAG Simulation", desc: "Context window is primed with Indian Law personas and instructions to simulate retrieval-augmented generation." },
-                            { label: "Vector Database", desc: "In production, Pinecone/Weaviate would store IPC/CrPC chunks. Currently uses Gemini's internal knowledge base." },
-                            { label: "Security", desc: "API keys are environmental. No user data is persisted server-side in this demo." }
-                        ].map((item, i) => (
-                            <div key={i} className="flex items-start gap-3 py-2 border-b border-border last:border-0">
-                                <div className="w-1.5 h-1.5 bg-accent rounded-full mt-2 flex-shrink-0"></div>
-                                <div>
-                                    <span className="text-sm font-medium text-text-primary">{item.label}: </span>
-                                    <span className="text-sm text-text-secondary">{item.desc}</span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
+            `}</pre>
             </div>
+          </div>
         </div>
-    );
+
+        {/* Implementation Details */}
+        <div className="bg-bg-secondary border border-border rounded-xl p-6">
+          <h3 className="text-sm font-semibold text-text-primary mb-4">Implementation Notes</h3>
+          <div className="space-y-3">
+            {[
+              {
+                label: 'RAG Simulation',
+                desc: "Context is primed with Indian Law personas to simulate retrieval-augmented generation.",
+              },
+              {
+                label: 'Security',
+                desc: 'API keys are in environment variables. Firebase handles auth; no user data stored server-side in this demo.',
+              },
+            ].map((item, i) => (
+              <div key={i} className="flex items-start gap-3 py-2 border-b border-border last:border-0">
+                <div className="w-1.5 h-1.5 bg-accent rounded-full mt-2 flex-shrink-0" />
+                <div>
+                  <span className="text-sm font-medium text-text-primary">{item.label}: </span>
+                  <span className="text-sm text-text-secondary">{item.desc}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };

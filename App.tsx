@@ -119,7 +119,7 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (v: boolea
     { path: '/scam-check', label: 'Scam Check', icon: <ShieldIcon /> },
     { path: '/legal-flow', label: 'Legal-Flow', icon: <FlowchartIcon /> },
     { path: '/case-studies', label: 'Case Studies', icon: <CaseStudyIcon /> },
-    { path: '/architecture', label: 'Architecture', icon: <NetworkIcon /> },
+    { path: '/architecture', label: 'About', icon: <NetworkIcon /> },
   ];
 
   return (
@@ -272,7 +272,7 @@ const LandingPage = () => {
                         { to: '/scam-check', icon: <ShieldIcon className="w-5 h-5" />, title: 'Scam Check', desc: 'Paste suspicious messages — get instant forensic analysis with IT Act citations.', color: 'bg-red-500/10 text-red-400 border-red-500/20' },
                         { to: '/legal-flow', icon: <FlowchartIcon className="w-5 h-5" />, title: 'Legal-Flow', desc: 'Get visual step-by-step flowcharts for any legal process — filing FIR to filing PIL.', color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' },
                         { to: '/case-studies', icon: <CaseStudyIcon className="w-5 h-5" />, title: 'Case Studies', desc: 'Deep-dive into landmark cases with animated visual stories, charts & Mermaid diagrams.', color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' },
-                        { to: '/architecture', icon: <NetworkIcon className="w-5 h-5" />, title: 'Architecture', desc: 'See how Legal AI works under the hood — data flow, Gemini integration & system design.', color: 'bg-teal-500/10 text-teal-400 border-teal-500/20' },
+                        { to: '/architecture', icon: <NetworkIcon className="w-5 h-5" />, title: 'About', desc: 'Meet CodeX — team, tech stack, and how Legal AI works under the hood.', color: 'bg-teal-500/10 text-teal-400 border-teal-500/20' },
                     ].map((f, i) => (
                         <Link
                             key={i}
