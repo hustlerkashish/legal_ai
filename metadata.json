@@ -1,0 +1,5 @@
+{
+  "name": "Legal AI",
+  "description": "A production-ready, AI-powered legal assistance platform for Indian laws. Features RAG-based chat, document summarization, law comparison, and ELI5 simplification modes using Gemini 3 Flash.",
+  "requestFramePermissions": []
+}

@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Legal AI - Indian Legal Intelligence</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      @font-face { font-family: 'FK Grotesk'; src: url('/fonts/FKGroteskTrial-Light.otf') format('opentype'); font-weight: 300; font-style: normal; font-display: swap; }
+      @font-face { font-family: 'FK Grotesk'; src: url('/fonts/FKGroteskTrial-Regular.otf') format('opentype'); font-weight: 400; font-style: normal; font-display: swap; }
+      @font-face { font-family: 'FK Grotesk'; src: url('/fonts/FKGroteskTrial-Medium.otf') format('opentype'); font-weight: 500; font-style: normal; font-display: swap; }
+      @font-face { font-family: 'FK Grotesk'; src: url('/fonts/FKGroteskTrial-Bold.otf') format('opentype'); font-weight: 700; font-style: normal; font-display: swap; }
+      @font-face { font-family: 'FK Grotesk'; src: url('/fonts/FKGroteskTrial-Black.otf') format('opentype'); font-weight: 900; font-style: normal; font-display: swap; }
+    </style>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['FK Grotesk', '-apple-system', 'system-ui', 'sans-serif'],
+            },
+            colors: {
+              bg: {
+                DEFAULT: '#191a1a',
+                secondary: '#202222',
+                tertiary: '#2b2d2d',
+                elevated: '#313333',
+                hover: '#383a3a',
+              },
+              border: {
+                DEFAULT: '#2b2d2d',
+                light: '#383a3a',
+              },
+              text: {
+                primary: '#e8e8e8',
+                secondary: '#a1a1a1',
+                tertiary: '#6b6b6b',
+                muted: '#525252',
+              },
+              accent: {
+                DEFAULT: '#20b8cd',
+                hover: '#1ba3b5',
+                light: '#20b8cd22',
+                muted: '#20b8cd15',
+              },
+              super: {
+                DEFAULT: '#20b8cd',
+                light: '#2dd4bf',
+              },
+            },
+            animation: {
+              'fade-in': 'fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+              'slide-up': 'slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+            },
+            keyframes: {
+              fadeIn: {
+                '0%': { opacity: '0', transform: 'translateZ(0)' },
+                '100%': { opacity: '1', transform: 'translateZ(0)' },
+              },
+              slideUp: {
+                '0%': { transform: 'translate3d(0, 12px, 0)', opacity: '0' },
+                '100%': { transform: 'translate3d(0, 0, 0)', opacity: '1' },
+              },
+            }
+          },
+        },
+      }
+    </script>
+    <style>
+      ::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #383a3a;
+        border-radius: 100px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #525252;
+      }
+      * {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      /* ── GPU Acceleration ── */
+      .gpu { transform: translateZ(0); backface-visibility: hidden; }
+
+      /* ── Welcome Screen ── */
+      .welcome-gradient-text {
+        background: linear-gradient(135deg, #e8e8e8 0%, #20b8cd 50%, #e8e8e8 100%);
+        background-size: 200% 200%;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        animation: welcomeGradientShift 3s ease infinite;
+        will-change: background-position;
+      }
+      @keyframes welcomeGradientShift {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+      }
+      .welcome-pulse {
+        animation: welcomePulse 3s ease-in-out infinite;
+        will-change: transform, opacity;
+      }
+      @keyframes welcomePulse {
+        0%, 100% { transform: translate3d(-50%, -50%, 0) scale(1); opacity: 0.6; }
+        50% { transform: translate3d(-50%, -50%, 0) scale(1.15); opacity: 1; }
+      }
+      .welcome-container {
+        will-change: opacity;
+        transform: translateZ(0);
+        backface-visibility: hidden;
+      }
+      .welcome-cursor {
+        will-change: opacity;
+        transform: translateZ(0);
+      }
+      .welcome-fade-element {
+        will-change: transform, opacity;
+        transform: translateZ(0);
+        backface-visibility: hidden;
+      }
+
+      /* ── Markdown table styling ── */
+      .prose table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.8rem;
+        margin: 0.75rem 0;
+        border-radius: 0.5rem;
+        overflow: hidden;
+      }
+      .prose thead {
+        background: #2b2d2d;
+      }
+      .prose th {
+        text-align: left;
+        padding: 0.5rem 0.75rem;
+        font-weight: 600;
+        color: #e8e8e8;
+        border-bottom: 1px solid #383a3a;
+        white-space: nowrap;
+      }
+      .prose td {
+        padding: 0.5rem 0.75rem;
+        color: #a1a1a1;
+        border-bottom: 1px solid #2b2d2d;
+      }
+      .prose tr:last-child td {
+        border-bottom: none;
+      }
+      .prose tbody tr:hover {
+        background: rgba(32, 184, 205, 0.04);
+      }
+
+      /* ── Code blocks ── */
+      .prose pre {
+        background: #202222;
+        border: 1px solid #2b2d2d;
+        border-radius: 0.5rem;
+        padding: 0.75rem 1rem;
+        overflow-x: auto;
+        font-size: 0.75rem;
+      }
+      .prose code:not(pre code) {
+        background: #2b2d2d;
+        color: #20b8cd;
+        padding: 0.15rem 0.4rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+      }
+
+      /* ── Blockquote ── */
+      .prose blockquote {
+        border-left: 2px solid #20b8cd;
+        padding-left: 1rem;
+        color: #a1a1a1;
+        font-style: italic;
+      }
+
+      /* ── Case Study Visual Story Animations ── */
+      @keyframes csSlideInRight {
+        0% { opacity: 0; transform: translate3d(40px, 0, 0) scale(0.97); }
+        100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+      }
+      @keyframes csSlideInLeft {
+        0% { opacity: 0; transform: translate3d(-40px, 0, 0) scale(0.97); }
+        100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+      }
+      .cs-slide-enter-next {
+        animation: csSlideInRight 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+        will-change: transform, opacity;
+        backface-visibility: hidden;
+      }
+      .cs-slide-enter-prev {
+        animation: csSlideInLeft 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+        will-change: transform, opacity;
+        backface-visibility: hidden;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.40.0",
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.13.0",
+    "react-markdown": "https://esm.sh/react-markdown@^10.1.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-bg text-text-primary antialiased selection:bg-accent-light selection:text-bg">
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
