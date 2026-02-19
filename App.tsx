@@ -9,11 +9,13 @@ import { ScamCheck } from './components/ScamCheck';
 import { SnapSolve } from './components/SnapSolve';
 import { LegalFlow } from './components/LegalFlow';
 import { CaseStudies } from './components/CaseStudies';
+import { CaseDatabase } from './components/CaseDatabase';
+import { JudgmentAnalyzer } from './components/JudgmentAnalyzer';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Login } from './components/Login';
 import { Signup } from './components/Signup';
 import { ForgotPassword } from './components/ForgotPassword';
-import { ScaleIcon, BookOpenIcon, FileTextIcon, MenuIcon, NetworkIcon, ArrowRightIcon, SparklesIcon, ShieldIcon, XIcon, CalculatorIcon, MapPinIcon, CameraScanIcon, FlowchartIcon, CaseStudyIcon, LogOutIcon } from './components/Icons';
+import { ScaleIcon, BookOpenIcon, FileTextIcon, MenuIcon, NetworkIcon, ArrowRightIcon, SparklesIcon, ShieldIcon, XIcon, CalculatorIcon, MapPinIcon, CameraScanIcon, FlowchartIcon, CaseStudyIcon, LogOutIcon, DatabaseIcon } from './components/Icons';
 import { useAuth } from './contexts/AuthContext';
 import { logout } from './services/authService';
 
@@ -118,6 +120,7 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (v: boolea
     { path: '/find-help', label: 'Find Help Near Me', icon: <MapPinIcon /> },
     { path: '/scam-check', label: 'Scam Check', icon: <ShieldIcon /> },
     { path: '/legal-flow', label: 'Legal-Flow', icon: <FlowchartIcon /> },
+    { path: '/judgments', label: 'Judgment DB', icon: <DatabaseIcon /> },
     { path: '/case-studies', label: 'Case Studies', icon: <CaseStudyIcon /> },
     { path: '/architecture', label: 'About', icon: <NetworkIcon /> },
   ];
@@ -243,7 +246,7 @@ const LandingPage = () => {
             <div className="border-y border-border bg-bg-secondary/50">
                 <div className="max-w-5xl mx-auto px-6 py-5 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
                     {[
-                        { value: '9+', label: 'Legal Tools' },
+                        { value: '10+', label: 'Legal Tools' },
                         { value: '11', label: 'Languages' },
                         { value: '100%', label: 'Free to Use' },
                         { value: 'Zero', label: 'Data Stored' },
@@ -272,6 +275,7 @@ const LandingPage = () => {
                         { to: '/scam-check', icon: <ShieldIcon className="w-5 h-5" />, title: 'Scam Check', desc: 'Paste suspicious messages — get instant forensic analysis with IT Act citations.', color: 'bg-red-500/10 text-red-400 border-red-500/20' },
                         { to: '/legal-flow', icon: <FlowchartIcon className="w-5 h-5" />, title: 'Legal-Flow', desc: 'Get visual step-by-step flowcharts for any legal process — filing FIR to filing PIL.', color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' },
                         { to: '/case-studies', icon: <CaseStudyIcon className="w-5 h-5" />, title: 'Case Studies', desc: 'Deep-dive into landmark cases with animated visual stories, charts & Mermaid diagrams.', color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' },
+                        { to: '/judgments', icon: <DatabaseIcon className="w-5 h-5" />, title: 'Judgment Database', desc: 'Browse 46,000+ Supreme Court judgments. AI-powered summary, statutes, citations & case flow.', color: 'bg-orange-500/10 text-orange-400 border-orange-500/20' },
                         { to: '/architecture', icon: <NetworkIcon className="w-5 h-5" />, title: 'About', desc: 'Meet CodeX — team, tech stack, and how Legal AI works under the hood.', color: 'bg-teal-500/10 text-teal-400 border-teal-500/20' },
                     ].map((f, i) => (
                         <Link
@@ -407,6 +411,8 @@ const App = () => {
           <Route path="find-help" element={<FindHelp />} />
           <Route path="scam-check" element={<ScamCheck />} />
           <Route path="legal-flow" element={<LegalFlow />} />
+          <Route path="judgments" element={<CaseDatabase />} />
+          <Route path="judgments/:caseId" element={<JudgmentAnalyzer />} />
           <Route path="case-studies" element={<CaseStudies />} />
           <Route path="architecture" element={<Architecture />} />
         </Route>

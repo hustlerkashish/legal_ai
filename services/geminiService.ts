@@ -1,5 +1,5 @@
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from "@google/genai";
-import { ComplexityLevel } from "../types";
+import { ComplexityLevel, JudgmentAnalysis } from "../types";
 
 // ── Multi-key rotation: auto-fallback on 429 rate limits ──
 const API_KEYS: string[] = [
@@ -7,6 +7,7 @@ const API_KEYS: string[] = [
   process.env.GEMINI_API_KEY_2,
   process.env.GEMINI_API_KEY_3,
   process.env.GEMINI_API_KEY_4,
+  process.env.GEMINI_API_KEY_5,
 ].filter(Boolean) as string[];
 
 if (API_KEYS.length === 0) {
@@ -809,5 +810,156 @@ ${query}`;
     if (error.name === 'AbortError') throw error;
     console.error("Case Study Error:", error);
     throw error;
+  }
+};
+
+// ── Judgment Analyzer (PDF text → structured analysis) ─────────────
+export const analyzeJudgment = async (
+  judgmentText: string,
+  onChunk: (text: string) => void,
+  abortSignal?: AbortSignal
+): Promise<JudgmentAnalysis | null> => {
+  try {
+    let fullResponse = '';
+
+    await withKeyRotation(async () => {
+      const ai = getClient();
+
+      const prompt = `You are **Legal AI Judgment Analyzer** — an expert Indian legal AI that dissects Supreme Court judgments.
+
+You will receive the full text of an Indian court judgment. Analyze it and return a **strictly valid JSON** object with the following structure. Return ONLY the JSON — no markdown fences, no explanation outside the JSON.
+
+{
+  "catchwords": ["tag1", "tag2", "tag3", "tag4", "tag5"],
+  "summary": "A comprehensive 200-300 word plain-language summary of the entire judgment — what happened, what was argued, what was decided.",
+  "case_flow": [
+    { "step": 1, "stage": "Origin / Incident", "description": "What originally happened that led to this case" },
+    { "step": 2, "stage": "Lower Court / Tribunal", "description": "What happened at the first court level" },
+    { "step": 3, "stage": "Appeal / High Court", "description": "How and why it was appealed" },
+    { "step": 4, "stage": "Supreme Court Hearing", "description": "Key arguments and observations" },
+    { "step": 5, "stage": "Final Verdict", "description": "The final decision and its reasoning" }
+  ],
+  "statutes": [
+    {
+      "section": "Section 302",
+      "act": "Indian Penal Code, 1860",
+      "explanation": "Punishment for murder — Whoever commits murder shall be punished with death or imprisonment for life, and shall also be liable to fine."
+    }
+  ],
+  "cited_cases": [
+    {
+      "case_name": "Kesavananda Bharati v. State of Kerala",
+      "citation": "(1973) 4 SCC 225",
+      "context": "Cited to establish the basic structure doctrine"
+    }
+  ],
+  "court": "Supreme Court of India",
+  "date": "2024-03-15",
+  "judges": ["Justice A", "Justice B"],
+  "parties": {
+    "petitioner": "Name of Petitioner",
+    "respondent": "Name of Respondent"
+  },
+  "decision": "One-line summary of the final order — e.g., 'Appeal dismissed. Conviction upheld.'",
+  "case_type": "Criminal Appeal"
+}
+
+## RULES:
+1. **catchwords**: Exactly 5 legal keyword tags that a lawyer would use to classify this case. Think headnotes.
+2. **summary**: Write like explaining to a law student. Cover facts, issues, arguments, and decision.
+3. **case_flow**: Provide 4-7 steps showing how the case progressed from incident to final verdict. This is NOT a flowchart — it's a narrative timeline. Each step should be 1-3 sentences.
+4. **statutes**: Extract EVERY Act and Section mentioned or relied upon. For each, explain what that section actually says in plain English. If the judgment cites IPC sections, also mention the BNS equivalent if applicable.
+5. **cited_cases**: Extract EVERY other case cited in this judgment. Include the citation reference if mentioned. Explain in one line why it was cited.
+6. **judges**: Full names of all judges on the bench.
+7. **parties**: Identify petitioner/appellant and respondent.
+8. **decision**: The final order in one clear sentence.
+9. **case_type**: One of: Criminal Appeal, Civil Appeal, Writ Petition, Special Leave Petition, Review Petition, PIL, Transfer Petition, Contempt, or Other.
+10. **date**: In YYYY-MM-DD format. If not found, use "unknown".
+
+Return ONLY valid JSON. No markdown. No code fences. No commentary before or after the JSON.
+
+--- JUDGMENT TEXT ---
+
+${judgmentText.slice(0, 80000)}`;
+
+      const response = await ai.models.generateContentStream({
+        model: MODEL_NAME,
+        contents: prompt,
+        config: {
+          temperature: 0.1,
+          responseMimeType: 'application/json',
+        },
+      });
+
+      for await (const chunk of response) {
+        if (abortSignal?.aborted) break;
+        if (chunk.text) {
+          fullResponse += chunk.text;
+          onChunk(chunk.text);
+        }
+      }
+    });
+
+    // Parse the JSON
+    try {
+      // Clean up any stray markdown fences
+      let cleaned = fullResponse.trim();
+      if (cleaned.startsWith('```')) {
+        cleaned = cleaned.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+      }
+      return JSON.parse(cleaned) as JudgmentAnalysis;
+    } catch (parseErr) {
+      console.error('Failed to parse judgment analysis JSON:', parseErr);
+      return null;
+    }
+  } catch (error: any) {
+    if (error.name === 'AbortError') throw error;
+    console.error("Judgment Analysis Error:", error);
+    throw error;
+  }
+};
+
+// ── AI Search: search across judgment text snippets ────────────────
+export const aiSearchJudgments = async (
+  query: string,
+  caseSnippets: { id: string; text: string }[],
+  abortSignal?: AbortSignal
+): Promise<string[]> => {
+  try {
+    return await withKeyRotation(async () => {
+      const ai = getClient();
+
+      const snippetList = caseSnippets
+        .map((s, i) => `[ID:${s.id}]\n${s.text.slice(0, 500)}`)
+        .join('\n---\n');
+
+      const prompt = `You are a legal search engine. Given a user query and a list of case text snippets, return ONLY a JSON array of IDs that are most relevant to the query. Return 0-20 IDs max, most relevant first.
+
+User query: "${query}"
+
+Case snippets:
+${snippetList}
+
+Return ONLY a JSON array of ID strings, e.g.: ["10001-2023", "judis-12345"]. No explanation.`;
+
+      const response = await ai.models.generateContent({
+        model: MODEL_NAME,
+        contents: prompt,
+        config: {
+          temperature: 0.1,
+          responseMimeType: 'application/json',
+        },
+      });
+
+      const raw = response.text?.trim() || '[]';
+      try {
+        return JSON.parse(raw) as string[];
+      } catch {
+        return [];
+      }
+    });
+  } catch (error) {
+    console.error("AI Search Error:", error);
+    return [];
   }
 };
