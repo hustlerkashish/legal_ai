@@ -126,7 +126,7 @@ export const FindHelp: React.FC = () => {
   const hasLocation = !!location || manualCity.trim().length > 0;
 
   return (
-    <div className="h-full overflow-y-auto bg-bg">
+    <div className="h-full overflow-y-auto overflow-x-hidden bg-bg">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-8 animate-fade-in">
         {/* Header */}
         <div className="space-y-2">

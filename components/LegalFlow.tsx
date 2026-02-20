@@ -157,7 +157,7 @@ export const LegalFlow: React.FC = () => {
   const selectedLang = LANGUAGE_OPTIONS.find((l) => l.code === language) || LANGUAGE_OPTIONS[0];
 
   return (
-    <div className="h-full overflow-y-auto bg-bg">
+    <div className="h-full overflow-y-auto overflow-x-hidden bg-bg">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6 animate-fade-in">
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
@@ -208,7 +208,7 @@ export const LegalFlow: React.FC = () => {
             <h2 className="text-sm font-semibold text-text-primary">Describe the legal process you want to visualize</h2>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             <input
               type="text"
               value={input}
@@ -220,7 +220,7 @@ export const LegalFlow: React.FC = () => {
             <button
               onClick={() => handleGenerate()}
               disabled={!input.trim() || isLoading}
-              className="flex items-center gap-2 px-5 py-2.5 bg-accent hover:bg-accent-hover text-bg rounded-lg text-sm font-medium transition-all active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+              className="flex items-center justify-center gap-2 px-5 py-2.5 bg-accent hover:bg-accent-hover text-bg rounded-lg text-sm font-medium transition-all active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
             >
               {isLoading ? (
                 <LoaderIcon className="w-4 h-4 animate-spin" />

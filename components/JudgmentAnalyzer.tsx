@@ -141,7 +141,7 @@ export const JudgmentAnalyzer = () => {
   // ── Loading / Error States ─────────────────────────────────────
   if (loading || analyzing) {
     return (
-      <div className="h-full overflow-y-auto bg-bg">
+      <div className="h-full overflow-y-auto overflow-x-hidden bg-bg">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 animate-fade-in">
           <Link to="/judgments" className="inline-flex items-center gap-1.5 text-sm text-text-tertiary hover:text-accent transition-colors mb-6">
             ← Back to Case Database
@@ -174,7 +174,7 @@ export const JudgmentAnalyzer = () => {
 
   if (error) {
     return (
-      <div className="h-full overflow-y-auto bg-bg">
+      <div className="h-full overflow-y-auto overflow-x-hidden bg-bg">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 animate-fade-in">
           <Link to="/judgments" className="inline-flex items-center gap-1.5 text-sm text-text-tertiary hover:text-accent transition-colors mb-6">
             ← Back to Case Database
@@ -206,7 +206,7 @@ export const JudgmentAnalyzer = () => {
   ];
 
   return (
-    <div className="h-full overflow-y-auto bg-bg">
+    <div className="h-full overflow-y-auto overflow-x-hidden bg-bg">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-5 animate-fade-in">
         {/* Back button */}
         <Link to="/judgments" className="inline-flex items-center gap-1.5 text-sm text-text-tertiary hover:text-accent transition-colors">

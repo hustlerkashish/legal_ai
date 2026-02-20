@@ -179,7 +179,7 @@ export const CaseStudies: React.FC = () => {
   const selectedLang = LANGUAGE_OPTIONS.find((l) => l.code === language) || LANGUAGE_OPTIONS[0];
 
   return (
-    <div className="h-full overflow-y-auto bg-bg">
+    <div className="h-full overflow-y-auto overflow-x-hidden bg-bg">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6 animate-fade-in">
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
@@ -230,7 +230,7 @@ export const CaseStudies: React.FC = () => {
             <h2 className="text-sm font-semibold text-text-primary">Search a case study</h2>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             <input
               type="text"
               value={input}
@@ -526,7 +526,7 @@ const VisualStory: React.FC<{ content: string }> = ({ content }) => {
       </div>
 
       {/* Slide */}
-      <div className="px-5 py-6 min-h-[360px] max-h-[65vh] overflow-y-auto">
+      <div className="px-4 sm:px-5 py-4 sm:py-6 min-h-[280px] sm:min-h-[360px] max-h-[65vh] overflow-y-auto">
         <div
           key={currentSlide}
           className={`cs-slide-enter-${slideDirection}`}

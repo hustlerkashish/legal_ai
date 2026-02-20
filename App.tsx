@@ -200,7 +200,7 @@ const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (v: boolea
 
 const LandingPage = () => {
     return (
-        <div className="h-full overflow-y-auto bg-bg">
+        <div className="h-full overflow-y-auto overflow-x-hidden bg-bg">
             {/* ── Hero ── */}
             <div className="relative min-h-[75vh] flex items-center justify-center px-6 py-24 overflow-hidden">
                 {/* Background glow */}
@@ -364,19 +364,20 @@ const AppLayout = () => {
   return (
     <div className="flex h-screen w-full overflow-hidden bg-bg">
       <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
-      <main className="flex-1 flex flex-col h-full relative">
+      <main className="flex-1 min-w-0 flex flex-col h-full relative">
         <header className="md:hidden bg-bg border-b border-border px-4 py-3 flex items-center justify-between z-10 shrink-0">
+          <button onClick={() => setIsSidebarOpen(true)} className="p-2 -ml-1 text-text-secondary hover:text-text-primary rounded-lg hover:bg-bg-secondary transition-colors">
+            <MenuIcon />
+          </button>
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
               <ScaleIcon className="text-bg w-4 h-4" />
             </div>
             <span className="font-semibold text-text-primary text-sm">Legal AI</span>
           </div>
-          <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-text-secondary hover:text-text-primary rounded-lg hover:bg-bg-secondary transition-colors">
-            <MenuIcon />
-          </button>
+          <div className="w-10" />
         </header>
-        <div className="flex-1 overflow-hidden relative">
+        <div className="flex-1 overflow-hidden relative w-full">
           <Outlet />
         </div>
       </main>

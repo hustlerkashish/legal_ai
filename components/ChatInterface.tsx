@@ -465,8 +465,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialQuery }) =>
   return (
     <div className="flex flex-col h-full bg-bg relative">
       {/* Toolbar */}
-      <div className="bg-bg-secondary border-b border-border px-4 py-2.5 flex justify-between items-center z-10">
-        <div className="flex items-center gap-3">
+      <div className="bg-bg-secondary border-b border-border px-3 sm:px-4 py-2 sm:py-2.5 flex flex-wrap gap-2 justify-between items-center z-10">
+        <div className="flex items-center gap-2 sm:gap-3">
             <BrainIcon className="text-accent w-4 h-4" />
             <span className="text-sm font-medium text-text-secondary hidden md:block">Legal Reasoning Engine</span>
 
@@ -474,7 +474,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialQuery }) =>
             <div className="relative" ref={langMenuRef}>
               <button
                 onClick={() => setShowLangMenu(!showLangMenu)}
-                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg bg-bg-tertiary hover:bg-bg-elevated text-text-secondary transition-all border border-border"
+                className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 text-xs font-medium rounded-lg bg-bg-tertiary hover:bg-bg-elevated text-text-secondary transition-all border border-border"
               >
                 <GlobeIcon className="w-3.5 h-3.5" />
                 <span>{language.label}</span>
@@ -499,9 +499,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialQuery }) =>
               )}
             </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
           {hasConversation && (
-            <div className="flex items-center gap-1 mr-2">
+            <div className="flex items-center gap-1 mr-1 sm:mr-2">
               <button onClick={handleCopyAll} className="flex items-center gap-1.5 px-2 py-1 text-[11px] text-text-tertiary hover:text-text-secondary hover:bg-bg-tertiary rounded-lg transition-all" title="Copy full conversation">
                 {copiedId === 'all' ? <CheckIcon className="w-3 h-3 text-emerald-400" /> : <CopyIcon className="w-3 h-3" />}
                 <span className="hidden md:inline">{copiedId === 'all' ? 'Copied!' : 'Copy All'}</span>
@@ -512,16 +512,16 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialQuery }) =>
               </button>
             </div>
           )}
-          <button onClick={handleNewChat} disabled={isLoading || messages.length <= 1} className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-text-tertiary hover:text-text-secondary hover:bg-bg-tertiary rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed border border-border" title="Start new conversation">
+          <button onClick={handleNewChat} disabled={isLoading || messages.length <= 1} className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 text-xs font-medium text-text-tertiary hover:text-text-secondary hover:bg-bg-tertiary rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed border border-border" title="Start new conversation">
             <PlusIcon className="w-3.5 h-3.5" />
-            <span className="hidden md:inline">New Chat</span>
+            <span className="hidden sm:inline">New Chat</span>
           </button>
           <div className="flex gap-1">
             {(Object.keys(ComplexityLevel) as Array<keyof typeof ComplexityLevel>).map((key) => (
                 <button
                     key={key}
                     onClick={() => setComplexity(ComplexityLevel[key])}
-                    className={`px-3 py-1 text-xs font-medium rounded-lg transition-all ${
+                    className={`px-2 sm:px-3 py-1 text-[11px] sm:text-xs font-medium rounded-lg transition-all ${
                         complexity === ComplexityLevel[key]
                             ? 'bg-accent text-bg'
                             : 'text-text-tertiary hover:bg-bg-tertiary hover:text-text-secondary'
@@ -550,7 +550,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialQuery }) =>
                       <div className="bg-bg-secondary border border-border rounded-2xl rounded-bl-md p-5">
                         <h3 className="text-base font-semibold text-text-primary mb-1">Namaste! I'm <span className="text-accent">Legal AI</span></h3>
                         <p className="text-sm text-text-secondary mb-4">Your AI-powered Indian legal assistant. Ask me anything about laws, rights, or procedures.</p>
-                        <div className="grid grid-cols-2 gap-2 mb-1">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-1">
                           {[
                             { icon: <BookOpenTextIcon className="w-3.5 h-3.5" />, label: 'Legal Response', desc: 'Detailed legal analysis', color: 'text-text-primary bg-bg-tertiary' },
                             { icon: <WandIcon className="w-3.5 h-3.5" />, label: 'Simplify', desc: "Explain like I'm 10", color: 'text-accent bg-accent/10' },
@@ -776,7 +776,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialQuery }) =>
       )}
 
       {/* Input */}
-      <div className="p-4 bg-bg border-t border-border">
+      <div className="p-2.5 sm:p-4 bg-bg border-t border-border">
         <div className="max-w-3xl mx-auto">
           <div className="relative flex items-end gap-2 bg-bg-secondary border border-border rounded-xl p-1.5 focus-within:border-accent/50 focus-within:ring-1 focus-within:ring-accent/20 transition-all">
             {/* Mic Button */}
@@ -808,7 +808,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialQuery }) =>
             />
             {/* Character count */}
             {charCount > 0 && (
-              <span className={`absolute bottom-1 right-24 text-[10px] tabular-nums ${charCount > 4000 ? 'text-red-400' : 'text-text-muted'}`}>
+              <span className={`absolute bottom-1 right-14 sm:right-24 text-[10px] tabular-nums ${charCount > 4000 ? 'text-red-400' : 'text-text-muted'}`}>
                 {charCount.toLocaleString()}
               </span>
             )}

@@ -58,8 +58,8 @@ const CourtFeesCalc = () => {
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="col-span-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="sm:col-span-2">
           <label className="text-xs font-medium text-text-secondary mb-1.5 block">Suit / Claim Value (₹)</label>
           <input type="number" value={suitValue} onChange={e => setSuitValue(e.target.value)} placeholder="e.g. 500000"
             className="w-full bg-bg border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 transition-all" />
@@ -134,8 +134,8 @@ const InterestCalc = () => {
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="col-span-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="sm:col-span-2">
           <label className="text-xs font-medium text-text-secondary mb-1.5 block">Principal Amount (₹)</label>
           <input type="number" value={principal} onChange={e => setPrincipal(e.target.value)} placeholder="e.g. 100000"
             className="w-full bg-bg border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 transition-all" />
@@ -170,14 +170,14 @@ const InterestCalc = () => {
       <button onClick={calculate} className="w-full py-2.5 bg-accent hover:bg-accent-hover text-bg rounded-lg font-medium text-sm transition-all active:scale-[0.98]">Calculate Interest</button>
       {result && (
         <div className="bg-bg rounded-xl border border-border p-5 animate-fade-in">
-          <div className="flex justify-center gap-8 mb-4">
+          <div className="flex justify-center gap-4 sm:gap-8 mb-4">
             <div className="text-center">
               <p className="text-xs text-text-tertiary mb-1">Interest</p>
-              <p className="text-2xl font-bold text-amber-400">₹{result.interest.toLocaleString('en-IN')}</p>
+              <p className="text-xl sm:text-2xl font-bold text-amber-400">₹{result.interest.toLocaleString('en-IN')}</p>
             </div>
             <div className="text-center">
               <p className="text-xs text-text-tertiary mb-1">Total Due</p>
-              <p className="text-2xl font-bold text-accent">₹{result.total.toLocaleString('en-IN')}</p>
+              <p className="text-xl sm:text-2xl font-bold text-accent">₹{result.total.toLocaleString('en-IN')}</p>
             </div>
           </div>
           <pre className="text-xs text-text-secondary whitespace-pre-wrap leading-relaxed">{result.breakdown}</pre>
@@ -229,8 +229,8 @@ const GratuityCalc = () => {
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="col-span-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="sm:col-span-2">
           <label className="text-xs font-medium text-text-secondary mb-1.5 block">Last Drawn Monthly Salary — Basic + DA (₹)</label>
           <input type="number" value={lastSalary} onChange={e => setLastSalary(e.target.value)} placeholder="e.g. 50000"
             className="w-full bg-bg border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 transition-all" />
@@ -291,7 +291,7 @@ const MaintenanceCalc = () => {
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="text-xs font-medium text-text-secondary mb-1.5 block">Husband's Monthly Income (₹)</label>
           <input type="number" value={husbandIncome} onChange={e => setHusbandIncome(e.target.value)} placeholder="e.g. 80000"
@@ -302,7 +302,7 @@ const MaintenanceCalc = () => {
           <input type="number" value={wifeIncome} onChange={e => setWifeIncome(e.target.value)} placeholder="0 if none"
             className="w-full bg-bg border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 transition-all" />
         </div>
-        <div className="col-span-2">
+        <div className="sm:col-span-2">
           <label className="text-xs font-medium text-text-secondary mb-1.5 block">Number of Children</label>
           <input type="number" value={children} onChange={e => setChildren(e.target.value)} placeholder="0"
             className="w-full bg-bg border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 transition-all" />
@@ -348,7 +348,7 @@ const BailSuretyCalc = () => {
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="text-xs font-medium text-text-secondary mb-1.5 block">Offence Type</label>
           <select value={offenceType} onChange={e => setOffenceType(e.target.value as any)}
@@ -366,7 +366,7 @@ const BailSuretyCalc = () => {
             <option value="serious">Serious</option>
           </select>
         </div>
-        <div className="col-span-2">
+        <div className="sm:col-span-2">
           <label className="text-xs font-medium text-text-secondary mb-1.5 block">Accused's Monthly Income (₹)</label>
           <input type="number" value={incomeLevel} onChange={e => setIncomeLevel(e.target.value)} placeholder="e.g. 30000"
             className="w-full bg-bg border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 transition-all" />
@@ -375,14 +375,14 @@ const BailSuretyCalc = () => {
       <button onClick={calculate} className="w-full py-2.5 bg-accent hover:bg-accent-hover text-bg rounded-lg font-medium text-sm transition-all active:scale-[0.98]">Estimate Bail Amount</button>
       {result && (
         <div className="bg-bg rounded-xl border border-border p-5 animate-fade-in">
-          <div className="flex justify-center gap-8 mb-4">
+          <div className="flex justify-center gap-4 sm:gap-8 mb-4">
             <div className="text-center">
               <p className="text-xs text-text-tertiary mb-1">Personal Bond</p>
-              <p className="text-2xl font-bold text-accent">₹{result.bond.toLocaleString('en-IN')}</p>
+              <p className="text-xl sm:text-2xl font-bold text-accent">₹{result.bond.toLocaleString('en-IN')}</p>
             </div>
             <div className="text-center">
               <p className="text-xs text-text-tertiary mb-1">Surety</p>
-              <p className="text-2xl font-bold text-violet-400">₹{result.surety.toLocaleString('en-IN')}</p>
+              <p className="text-xl sm:text-2xl font-bold text-violet-400">₹{result.surety.toLocaleString('en-IN')}</p>
             </div>
           </div>
           <pre className="text-xs text-text-secondary whitespace-pre-wrap leading-relaxed">{result.breakdown}</pre>
@@ -407,24 +407,24 @@ export const Calculators = () => {
   };
 
   return (
-    <div className="h-full overflow-y-auto bg-bg">
-      <div className="max-w-4xl mx-auto px-6 py-8">
+    <div className="h-full overflow-y-auto overflow-x-hidden bg-bg">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 w-full box-border">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <div className="flex items-center gap-3 mb-1">
-            <CalculatorIcon className="w-6 h-6 text-accent" />
-            <h2 className="text-2xl font-bold text-text-primary">Smart Calculators</h2>
+            <CalculatorIcon className="w-5 h-5 sm:w-6 sm:h-6 text-accent" />
+            <h2 className="text-xl sm:text-2xl font-bold text-text-primary">Smart Calculators</h2>
           </div>
-          <p className="text-sm text-text-tertiary ml-9">Estimate court fees, interest, gratuity, maintenance & bail amounts.</p>
+          <p className="text-xs sm:text-sm text-text-tertiary ml-8 sm:ml-9">Estimate court fees, interest, gratuity, maintenance & bail amounts.</p>
         </div>
 
         {/* Tab Selector */}
-        <div className="flex gap-2 mb-8 overflow-x-auto pb-2 scrollbar-hide">
+        <div className="flex gap-1.5 sm:gap-2 mb-6 sm:mb-8 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
           {CALC_TABS.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-shrink-0 px-4 py-2 text-xs font-medium rounded-lg transition-all border ${
+              className={`flex-shrink-0 px-3 sm:px-4 py-2 text-[11px] sm:text-xs font-medium rounded-lg transition-all border ${
                 activeTab === tab.id
                   ? 'bg-accent text-bg border-accent'
                   : 'bg-bg-secondary text-text-secondary border-border hover:bg-bg-tertiary hover:text-text-primary'
@@ -436,7 +436,7 @@ export const Calculators = () => {
         </div>
 
         {/* Active Calculator */}
-        <div className="bg-bg-secondary border border-border rounded-xl p-6">
+        <div className="bg-bg-secondary border border-border rounded-xl p-4 sm:p-6">
           <div className="mb-5">
             <h3 className="text-base font-semibold text-text-primary">{CALC_TABS.find(t => t.id === activeTab)?.label}</h3>
             <p className="text-xs text-text-tertiary mt-0.5">{CALC_TABS.find(t => t.id === activeTab)?.desc}</p>

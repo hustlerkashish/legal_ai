@@ -151,7 +151,7 @@ export const CaseDatabase = () => {
   }
 
   return (
-    <div className="h-full overflow-y-auto bg-bg">
+    <div className="h-full overflow-y-auto overflow-x-hidden bg-bg">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6 animate-fade-in">
 
         {/* ── Header ─────────────────────────────────────────── */}
@@ -311,10 +311,10 @@ export const CaseDatabase = () => {
                       {caseItem.type}
                     </span>
                   </div>
-                  <div className="flex items-center gap-3 mt-1 text-[12px] text-text-quaternary">
+                  <div className="flex items-center gap-2 sm:gap-3 mt-1 text-[11px] sm:text-[12px] text-text-quaternary flex-wrap">
                     <span>🏛️ {caseItem.court}</span>
                     {caseItem.date && <span>📅 {caseItem.date}</span>}
-                    <span className="text-[10px] text-text-quaternary/50 truncate max-w-[200px]">
+                    <span className="text-[10px] text-text-quaternary/50 truncate max-w-[150px] sm:max-w-[200px]">
                       {caseItem.source === 'judis' ? 'JUDIS Archive' : 'SCI Portal'}
                     </span>
                   </div>
