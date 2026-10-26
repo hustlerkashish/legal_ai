@@ -11,19 +11,15 @@ export default defineConfig(({ mode }) => {
       },
       plugins: [react()],
       define: {
-        'process.env.OPENROUTER_API_KEY': JSON.stringify(env.OPENROUTER_API_KEY || env.OPENROUTER_API_KEY_1 || ''),
-        'process.env.OPENROUTER_API_KEY_1': JSON.stringify(env.OPENROUTER_API_KEY_1 || env.OPENROUTER_API_KEY || ''),
+        'process.env.OPENROUTER_API_KEY': JSON.stringify(env.VITE_OPENROUTER_API_KEY || env.OPENROUTER_API_KEY || env.OPENROUTER_API_KEY_1 || ''),
+        'process.env.OPENROUTER_API_KEY_1': JSON.stringify(env.VITE_OPENROUTER_API_KEY || env.OPENROUTER_API_KEY_1 || env.OPENROUTER_API_KEY || ''),
         'process.env.OPENROUTER_API_KEY_2': JSON.stringify(env.OPENROUTER_API_KEY_2 || ''),
         'process.env.OPENROUTER_API_KEY_3': JSON.stringify(env.OPENROUTER_API_KEY_3 || ''),
         'process.env.OPENROUTER_API_KEY_4': JSON.stringify(env.OPENROUTER_API_KEY_4 || ''),
         'process.env.OPENROUTER_API_KEY_5': JSON.stringify(env.OPENROUTER_API_KEY_5 || ''),
-        'process.env.OPENROUTER_MODEL': JSON.stringify(env.OPENROUTER_MODEL || 'google/gemini-2.0-flash-001'),
-        'process.env.API_KEY': JSON.stringify(env.OPENROUTER_API_KEY || env.GEMINI_API_KEY_1 || ''),
+        'process.env.OPENROUTER_MODEL': JSON.stringify(env.VITE_OPENROUTER_MODEL || env.OPENROUTER_MODEL || 'google/gemini-2.5-flash'),
+        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY_1 || ''),
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY_1 || ''),
-        'process.env.GEMINI_API_KEY_1': JSON.stringify(env.GEMINI_API_KEY_1 || ''),
-        'process.env.GEMINI_API_KEY_2': JSON.stringify(env.GEMINI_API_KEY_2 || ''),
-        'process.env.GEMINI_API_KEY_3': JSON.stringify(env.GEMINI_API_KEY_3 || ''),
-        'process.env.GEMINI_API_KEY_4': JSON.stringify(env.GEMINI_API_KEY_4 || ''),
       },
       resolve: {
         alias: {
