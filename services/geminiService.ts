@@ -1,37 +1,36 @@
 import { ComplexityLevel, JudgmentAnalysis } from "../types";
 
-// ── Multi-key rotation & OpenRouter configuration ──
-const getEnvVal = (key: string): string => {
-  const metaEnv = typeof import.meta !== 'undefined' && import.meta.env ? (import.meta.env as any)[key] : undefined;
-  const procEnv = typeof process !== 'undefined' && process.env ? (process.env as any)[key] : undefined;
-  return (metaEnv || procEnv || '') as string;
-};
-
 const isValidKey = (k?: string): boolean =>
-  Boolean(k && typeof k === 'string' && k.trim() && !k.includes('your_openrouter_api_key_here') && !k.startsWith('your_'));
+  Boolean(
+    k &&
+    typeof k === 'string' &&
+    k.trim() !== '' &&
+    !k.includes('your_openrouter_api_key_here') &&
+    !k.startsWith('your_')
+  );
 
 const getApiKeys = (): string[] => {
-  const keys = [
-    getEnvVal('VITE_OPENROUTER_API_KEY'),
-    getEnvVal('OPENROUTER_API_KEY'),
-    getEnvVal('VITE_OPENROUTER_API_KEY_1'),
-    getEnvVal('OPENROUTER_API_KEY_1'),
-    getEnvVal('VITE_OPENROUTER_API_KEY_2'),
-    getEnvVal('OPENROUTER_API_KEY_2'),
-    getEnvVal('VITE_OPENROUTER_API_KEY_3'),
-    getEnvVal('OPENROUTER_API_KEY_3'),
-    getEnvVal('VITE_OPENROUTER_API_KEY_4'),
-    getEnvVal('OPENROUTER_API_KEY_4'),
-    getEnvVal('VITE_OPENROUTER_API_KEY_5'),
-    getEnvVal('OPENROUTER_API_KEY_5'),
+  const rawList: (string | undefined)[] = [
+    import.meta.env.VITE_OPENROUTER_API_KEY,
+    process.env.OPENROUTER_API_KEY,
+    import.meta.env.VITE_OPENROUTER_API_KEY_1,
+    process.env.OPENROUTER_API_KEY_1,
+    import.meta.env.VITE_OPENROUTER_API_KEY_2,
+    process.env.OPENROUTER_API_KEY_2,
+    import.meta.env.VITE_OPENROUTER_API_KEY_3,
+    process.env.OPENROUTER_API_KEY_3,
+    import.meta.env.VITE_OPENROUTER_API_KEY_4,
+    process.env.OPENROUTER_API_KEY_4,
+    import.meta.env.VITE_OPENROUTER_API_KEY_5,
+    process.env.OPENROUTER_API_KEY_5,
   ];
-  return Array.from(new Set(keys.filter(isValidKey)));
+  return Array.from(new Set(rawList.filter(isValidKey) as string[]));
 };
 
 const getModelName = (): string => {
   return (
-    getEnvVal('VITE_OPENROUTER_MODEL') ||
-    getEnvVal('OPENROUTER_MODEL') ||
+    import.meta.env.VITE_OPENROUTER_MODEL ||
+    process.env.OPENROUTER_MODEL ||
     'google/gemini-2.5-flash'
   );
 };
