@@ -1,32 +1,45 @@
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { ComplexityLevel, JudgmentAnalysis } from "../types";
 
-// ── Multi-key rotation: auto-fallback on 429 rate limits ──
-const API_KEYS: string[] = [
+// ── Multi-key rotation & OpenRouter configuration ──
+const isValidKey = (k?: string) =>
+  Boolean(k && k.trim() && !k.includes('your_openrouter_api_key_here') && !k.startsWith('your_'));
+
+const OPENROUTER_KEYS: string[] = [
+  process.env.OPENROUTER_API_KEY,
+  process.env.OPENROUTER_API_KEY_1,
+  process.env.OPENROUTER_API_KEY_2,
+  process.env.OPENROUTER_API_KEY_3,
+  process.env.OPENROUTER_API_KEY_4,
+  process.env.OPENROUTER_API_KEY_5,
+].filter(isValidKey) as string[];
+
+const GEMINI_KEYS: string[] = [
   process.env.GEMINI_API_KEY_1,
   process.env.GEMINI_API_KEY_2,
   process.env.GEMINI_API_KEY_3,
   process.env.GEMINI_API_KEY_4,
   process.env.GEMINI_API_KEY_5,
-].filter(Boolean) as string[];
+  process.env.GEMINI_API_KEY,
+  process.env.API_KEY,
+].filter(isValidKey) as string[];
+
+const HAS_OPENROUTER = OPENROUTER_KEYS.length > 0;
+const API_KEYS: string[] = HAS_OPENROUTER ? OPENROUTER_KEYS : GEMINI_KEYS;
 
 if (API_KEYS.length === 0) {
-  console.error("No Gemini API keys found. Set GEMINI_API_KEY_1..4 in .env.local");
+  console.warn("No API key configured. Please set OPENROUTER_API_KEY in .env.local");
 }
+
+const MODEL_NAME = HAS_OPENROUTER
+  ? (process.env.OPENROUTER_MODEL || "google/gemini-2.0-flash-001")
+  : "gemini-3-flash-preview";
 
 let currentKeyIndex = 0;
 
-const getClient = () => {
-  if (API_KEYS.length === 0) {
-    throw new Error("API_KEY is missing. Please set it in the environment.");
-  }
-  return new GoogleGenAI({ apiKey: API_KEYS[currentKeyIndex] });
-};
-
 const rotateKey = (): boolean => {
+  if (API_KEYS.length <= 1) return false;
   const nextIndex = (currentKeyIndex + 1) % API_KEYS.length;
-  if (nextIndex === currentKeyIndex && API_KEYS.length === 1) return false;
-  // If we've cycled through all keys, return false
   currentKeyIndex = nextIndex;
   return true;
 };
@@ -34,22 +47,28 @@ const rotateKey = (): boolean => {
 const is429Error = (err: any): boolean =>
   err?.message?.includes('429') ||
   err?.message?.includes('RESOURCE_EXHAUSTED') ||
+  err?.message?.toLowerCase()?.includes('rate limit') ||
+  err?.message?.toLowerCase()?.includes('quota') ||
   err?.status === 429 ||
   err?.code === 429 ||
   err?.httpStatusCode === 429;
 
 /**
- * Wraps any async Gemini operation with automatic key rotation.
+ * Wraps any async AI operation with automatic key rotation.
  * If a 429 is detected, switches to the next API key and retries.
  * Cycles through all keys before giving up.
  */
-const withKeyRotation = async <T>(operation: () => Promise<T>): Promise<T> => {
-  const startIndex = currentKeyIndex;
-  let triedKeys = 0;
+const withKeyRotation = async <T>(operation: (key: string) => Promise<T>): Promise<T> => {
+  if (API_KEYS.length === 0) {
+    throw new Error(
+      "OpenRouter API key is missing. Please set OPENROUTER_API_KEY in .env.local (Get a key at https://openrouter.ai/keys)"
+    );
+  }
 
+  let triedKeys = 0;
   while (triedKeys < API_KEYS.length) {
     try {
-      return await operation();
+      return await operation(API_KEYS[currentKeyIndex]);
     } catch (err: any) {
       if (err?.name === 'AbortError') throw err;
 
@@ -58,8 +77,7 @@ const withKeyRotation = async <T>(operation: () => Promise<T>): Promise<T> => {
         console.warn(`Key ${currentKeyIndex + 1}/${API_KEYS.length} rate-limited (429). Rotating...`);
         if (triedKeys < API_KEYS.length) {
           rotateKey();
-          // Brief pause before retrying with new key
-          await new Promise(r => setTimeout(r, 300));
+          await new Promise((r) => setTimeout(r, 300));
           continue;
         }
       }
@@ -72,8 +90,126 @@ const withKeyRotation = async <T>(operation: () => Promise<T>): Promise<T> => {
   );
 };
 
-const MODEL_NAME = "gemini-3-flash-preview"; 
+// ── OpenRouter HTTP Client ─────────────────────────────────────────
+export interface OpenRouterContentPart {
+  type: 'text' | 'image_url';
+  text?: string;
+  image_url?: {
+    url: string;
+  };
+}
 
+export interface OpenRouterMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string | OpenRouterContentPart[];
+}
+
+const callOpenRouterStream = async (
+  apiKey: string,
+  model: string,
+  messages: OpenRouterMessage[],
+  temperature: number = 0.3,
+  onChunk: (text: string) => void,
+  abortSignal?: AbortSignal,
+  responseFormatJson?: boolean
+) => {
+  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000',
+      'X-Title': 'Nyaya Setu - Legal AI',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model,
+      messages,
+      temperature,
+      stream: true,
+      ...(responseFormatJson ? { response_format: { type: 'json_object' } } : {}),
+    }),
+    signal: abortSignal,
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => null);
+    const errorMsg = errorBody?.error?.message || response.statusText || `HTTP ${response.status}`;
+    const err: any = new Error(`OpenRouter Error (${response.status}): ${errorMsg}`);
+    err.status = response.status;
+    throw err;
+  }
+
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error('Response stream not readable');
+
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith(':')) continue;
+      if (trimmed === 'data: [DONE]') continue;
+      if (trimmed.startsWith('data: ')) {
+        try {
+          const parsed = JSON.parse(trimmed.slice(6));
+          const textChunk = parsed.choices?.[0]?.delta?.content || '';
+          if (textChunk) {
+            onChunk(textChunk);
+          }
+        } catch {
+          // ignore incomplete SSE chunk
+        }
+      }
+    }
+  }
+};
+
+const callOpenRouter = async (
+  apiKey: string,
+  model: string,
+  messages: OpenRouterMessage[],
+  temperature: number = 0.3,
+  abortSignal?: AbortSignal,
+  responseFormatJson?: boolean
+): Promise<string> => {
+  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000',
+      'X-Title': 'Nyaya Setu - Legal AI',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model,
+      messages,
+      temperature,
+      stream: false,
+      ...(responseFormatJson ? { response_format: { type: 'json_object' } } : {}),
+    }),
+    signal: abortSignal,
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => null);
+    const errorMsg = errorBody?.error?.message || response.statusText || `HTTP ${response.status}`;
+    const err: any = new Error(`OpenRouter Error (${response.status}): ${errorMsg}`);
+    err.status = response.status;
+    throw err;
+  }
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || '';
+};
+
+// ── Shared System Instructions & Languages ─────────────────────────
 const SYSTEM_INSTRUCTION = `
 You are Legal AI, an elite AI Legal Assistant for Indian Law.
 Your Goal: Democratize access to Indian legal knowledge using advanced reasoning.
@@ -113,6 +249,7 @@ const LANGUAGE_NAMES: Record<string, string> = {
   ur: 'Urdu',
 };
 
+// ── 1. Stream Chat Response ─────────────────────────────────────────
 export const streamChatResponse = async (
   history: { role: string; parts: { text: string }[] }[],
   message: string,
@@ -122,9 +259,7 @@ export const streamChatResponse = async (
   abortSignal?: AbortSignal
 ) => {
   try {
-    await withKeyRotation(async () => {
-      const ai = getClient();
-    
+    await withKeyRotation(async (apiKey) => {
       // Enrich prompt based on complexity
       let finalPrompt = message;
       if (complexity === ComplexityLevel.ELI5) {
@@ -139,64 +274,99 @@ export const streamChatResponse = async (
         finalPrompt = `[RESPOND IN ${langName.toUpperCase()} LANGUAGE] ${finalPrompt}`;
       }
 
-      const chat = ai.chats.create({
-        model: MODEL_NAME,
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-        temperature: 0.3,
-        safetySettings: [
-          { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE }
-        ]
-      },
-      history: history
-    });
+      if (HAS_OPENROUTER) {
+        const messages: OpenRouterMessage[] = [
+          { role: 'system', content: SYSTEM_INSTRUCTION },
+          ...history.map((h) => ({
+            role: (h.role === 'model' ? 'assistant' : 'user') as 'assistant' | 'user',
+            content: h.parts.map((p) => p.text).join(''),
+          })),
+          { role: 'user', content: finalPrompt },
+        ];
 
-    const result = await chat.sendMessageStream({ message: finalPrompt });
+        await callOpenRouterStream(apiKey, MODEL_NAME, messages, 0.3, onChunk, abortSignal);
+      } else {
+        const ai = new GoogleGenAI({ apiKey });
+        const chat = ai.chats.create({
+          model: "gemini-3-flash-preview",
+          config: {
+            systemInstruction: SYSTEM_INSTRUCTION,
+            temperature: 0.3,
+            safetySettings: [
+              { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE }
+            ]
+          },
+          history: history
+        });
 
-    for await (const chunk of result) {
-      if (abortSignal?.aborted) break;
-      if (chunk.text) {
-        onChunk(chunk.text);
+        const result = await chat.sendMessageStream({ message: finalPrompt });
+        for await (const chunk of result) {
+          if (abortSignal?.aborted) break;
+          if (chunk.text) {
+            onChunk(chunk.text);
+          }
+        }
       }
-    }
     });
   } catch (error) {
-    console.error("Gemini Chat Error:", error);
+    console.error("Chat Error:", error);
     throw error;
   }
 };
 
+// ── 2. Analyze Document ────────────────────────────────────────────
 export const analyzeDocument = async (
   fileBase64: string,
   mimeType: string,
   prompt: string
 ) => {
-  return await withKeyRotation(async () => {
-    const ai = getClient();
-  
-  const response = await ai.models.generateContent({
-    model: MODEL_NAME,
-    contents: {
-      parts: [
-        {
-            inlineData: {
-                mimeType: mimeType,
-                data: fileBase64
-            }
-        },
-        { text: `${prompt}\n\nPerform a legal analysis of this document. Summarize key parties, obligations, and potential liabilities.` }
-      ]
-    },
-    config: {
-        systemInstruction: SYSTEM_INSTRUCTION
-    }
-  });
+  return await withKeyRotation(async (apiKey) => {
+    const textContent = `${prompt}\n\nPerform a legal analysis of this document. Summarize key parties, obligations, and potential liabilities.`;
 
-    return response.text;
+    if (HAS_OPENROUTER) {
+      const messages: OpenRouterMessage[] = [
+        { role: 'system', content: SYSTEM_INSTRUCTION },
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: textContent },
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:${mimeType};base64,${fileBase64}`,
+              },
+            },
+          ],
+        },
+      ];
+
+      return await callOpenRouter(apiKey, MODEL_NAME, messages, 0.2);
+    } else {
+      const ai = new GoogleGenAI({ apiKey });
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: {
+          parts: [
+            {
+              inlineData: {
+                mimeType: mimeType,
+                data: fileBase64,
+              },
+            },
+            { text: textContent },
+          ],
+        },
+        config: {
+          systemInstruction: SYSTEM_INSTRUCTION,
+        },
+      });
+
+      return response.text;
+    }
   });
 };
 
-// ── Snap & Solve (OCR + Legal Explainer) ───────────────────────────
+// ── 3. Snap & Solve (OCR + Legal Explainer) ────────────────────────
 export const snapAndSolve = async (
   fileBase64: string,
   mimeType: string,
@@ -205,9 +375,7 @@ export const snapAndSolve = async (
   abortSignal?: AbortSignal
 ) => {
   try {
-    await withKeyRotation(async () => {
-      const ai = getClient();
-
+    await withKeyRotation(async (apiKey) => {
       let textPrompt = `You are **Legal AI Snap & Solve** — an Indian legal document OCR reader and explainer.
 
 A citizen has photographed a physical legal document (challan, court notice, FIR copy, legal notice, summons, warrant, rent agreement, etc.). Your job:
@@ -250,35 +418,55 @@ Alert the citizen about:
 
 End with: **⚠️ Disclaimer: This is an AI-powered reading and explanation for educational purposes only. Always verify with the original document and consult a qualified advocate for legal action.**`;
 
-    if (languageCode && languageCode !== 'en') {
-      const langName = LANGUAGE_NAMES[languageCode] || languageCode;
-      textPrompt = `[RESPOND IN ${langName.toUpperCase()} LANGUAGE] ${textPrompt}`;
-    }
-
-    const response = await ai.models.generateContentStream({
-      model: MODEL_NAME,
-      contents: {
-        parts: [
-          {
-            inlineData: {
-              mimeType: mimeType,
-              data: fileBase64,
-            },
-          },
-          { text: textPrompt },
-        ],
-      },
-      config: {
-        temperature: 0.2,
-      },
-    });
-
-    for await (const chunk of response) {
-      if (abortSignal?.aborted) break;
-      if (chunk.text) {
-        onChunk(chunk.text);
+      if (languageCode && languageCode !== 'en') {
+        const langName = LANGUAGE_NAMES[languageCode] || languageCode;
+        textPrompt = `[RESPOND IN ${langName.toUpperCase()} LANGUAGE] ${textPrompt}`;
       }
-    }
+
+      if (HAS_OPENROUTER) {
+        const messages: OpenRouterMessage[] = [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:${mimeType};base64,${fileBase64}`,
+                },
+              },
+              { type: 'text', text: textPrompt },
+            ],
+          },
+        ];
+
+        await callOpenRouterStream(apiKey, MODEL_NAME, messages, 0.2, onChunk, abortSignal);
+      } else {
+        const ai = new GoogleGenAI({ apiKey });
+        const response = await ai.models.generateContentStream({
+          model: "gemini-3-flash-preview",
+          contents: {
+            parts: [
+              {
+                inlineData: {
+                  mimeType: mimeType,
+                  data: fileBase64,
+                },
+              },
+              { text: textPrompt },
+            ],
+          },
+          config: {
+            temperature: 0.2,
+          },
+        });
+
+        for await (const chunk of response) {
+          if (abortSignal?.aborted) break;
+          if (chunk.text) {
+            onChunk(chunk.text);
+          }
+        }
+      }
     });
   } catch (error) {
     console.error("Snap & Solve Error:", error);
@@ -286,6 +474,7 @@ End with: **⚠️ Disclaimer: This is an AI-powered reading and explanation for
   }
 };
 
+// ── 4. Jurisdiction Analysis ───────────────────────────────────────
 export const generateJurisdictionAnalysis = async (
   text: string,
   languageCode: string,
@@ -293,9 +482,7 @@ export const generateJurisdictionAnalysis = async (
   abortSignal?: AbortSignal
 ) => {
   try {
-    await withKeyRotation(async () => {
-      const ai = getClient();
-
+    await withKeyRotation(async (apiKey) => {
       let prompt = `You are an expert Indian legal jurisdiction advisor. Analyze the following legal situation and tell the citizen EXACTLY where to file their complaint or case.
 
 Rules:
@@ -343,25 +530,34 @@ Here is the legal situation to analyze:
 
 ${text}`;
 
-    if (languageCode && languageCode !== 'en') {
-      const langName = LANGUAGE_NAMES[languageCode] || languageCode;
-      prompt = `[RESPOND IN ${langName.toUpperCase()} LANGUAGE] ${prompt}`;
-    }
-
-    const response = await ai.models.generateContentStream({
-      model: MODEL_NAME,
-      contents: prompt,
-      config: {
-        temperature: 0.3,
+      if (languageCode && languageCode !== 'en') {
+        const langName = LANGUAGE_NAMES[languageCode] || languageCode;
+        prompt = `[RESPOND IN ${langName.toUpperCase()} LANGUAGE] ${prompt}`;
       }
-    });
 
-    for await (const chunk of response) {
-      if (abortSignal?.aborted) break;
-      if (chunk.text) {
-        onChunk(chunk.text);
+      if (HAS_OPENROUTER) {
+        const messages: OpenRouterMessage[] = [
+          { role: 'system', content: SYSTEM_INSTRUCTION },
+          { role: 'user', content: prompt },
+        ];
+        await callOpenRouterStream(apiKey, MODEL_NAME, messages, 0.3, onChunk, abortSignal);
+      } else {
+        const ai = new GoogleGenAI({ apiKey });
+        const response = await ai.models.generateContentStream({
+          model: "gemini-3-flash-preview",
+          contents: prompt,
+          config: {
+            temperature: 0.3,
+          },
+        });
+
+        for await (const chunk of response) {
+          if (abortSignal?.aborted) break;
+          if (chunk.text) {
+            onChunk(chunk.text);
+          }
+        }
       }
-    }
     });
   } catch (error) {
     console.error("Jurisdiction Analysis Error:", error);
@@ -369,6 +565,7 @@ ${text}`;
   }
 };
 
+// ── 5. Action Plan Generator ───────────────────────────────────────
 export const generateActionPlan = async (
   text: string,
   languageCode: string,
@@ -376,9 +573,7 @@ export const generateActionPlan = async (
   abortSignal?: AbortSignal
 ) => {
   try {
-    await withKeyRotation(async () => {
-      const ai = getClient();
-
+    await withKeyRotation(async (apiKey) => {
       let prompt = `You are a practical legal action planner for Indian citizens. Read the following legal explanation and convert it into a clear, numbered step-by-step ACTION PLAN — a checklist that tells the citizen exactly what to DO next.
 
 Rules:
@@ -398,25 +593,34 @@ Here is the legal text to convert into an action plan:
 
 ${text}`;
 
-    if (languageCode && languageCode !== 'en') {
-      const langName = LANGUAGE_NAMES[languageCode] || languageCode;
-      prompt = `[RESPOND IN ${langName.toUpperCase()} LANGUAGE] ${prompt}`;
-    }
-
-    const response = await ai.models.generateContentStream({
-      model: MODEL_NAME,
-      contents: prompt,
-      config: {
-        temperature: 0.4,
+      if (languageCode && languageCode !== 'en') {
+        const langName = LANGUAGE_NAMES[languageCode] || languageCode;
+        prompt = `[RESPOND IN ${langName.toUpperCase()} LANGUAGE] ${prompt}`;
       }
-    });
 
-    for await (const chunk of response) {
-      if (abortSignal?.aborted) break;
-      if (chunk.text) {
-        onChunk(chunk.text);
+      if (HAS_OPENROUTER) {
+        const messages: OpenRouterMessage[] = [
+          { role: 'system', content: SYSTEM_INSTRUCTION },
+          { role: 'user', content: prompt },
+        ];
+        await callOpenRouterStream(apiKey, MODEL_NAME, messages, 0.4, onChunk, abortSignal);
+      } else {
+        const ai = new GoogleGenAI({ apiKey });
+        const response = await ai.models.generateContentStream({
+          model: "gemini-3-flash-preview",
+          contents: prompt,
+          config: {
+            temperature: 0.4,
+          },
+        });
+
+        for await (const chunk of response) {
+          if (abortSignal?.aborted) break;
+          if (chunk.text) {
+            onChunk(chunk.text);
+          }
+        }
       }
-    }
     });
   } catch (error) {
     console.error("Action Plan Error:", error);
@@ -424,6 +628,7 @@ ${text}`;
   }
 };
 
+// ── 6. Simplify Legal Text (ELI5) ──────────────────────────────────
 export const simplifyLegalText = async (
   text: string,
   languageCode: string,
@@ -431,9 +636,7 @@ export const simplifyLegalText = async (
   abortSignal?: AbortSignal
 ) => {
   try {
-    await withKeyRotation(async () => {
-      const ai = getClient();
-
+    await withKeyRotation(async (apiKey) => {
       let prompt = `You are a friendly storyteller who makes law easy for everyone. Take the following legal explanation and rewrite it so a 10-year-old child can understand it perfectly.
 
 Rules:
@@ -448,25 +651,34 @@ Here is the legal text to simplify:
 
 ${text}`;
 
-    if (languageCode && languageCode !== 'en') {
-      const langName = LANGUAGE_NAMES[languageCode] || languageCode;
-      prompt = `[RESPOND IN ${langName.toUpperCase()} LANGUAGE] ${prompt}`;
-    }
-
-    const response = await ai.models.generateContentStream({
-      model: MODEL_NAME,
-      contents: prompt,
-      config: {
-        temperature: 0.7,
+      if (languageCode && languageCode !== 'en') {
+        const langName = LANGUAGE_NAMES[languageCode] || languageCode;
+        prompt = `[RESPOND IN ${langName.toUpperCase()} LANGUAGE] ${prompt}`;
       }
-    });
 
-    for await (const chunk of response) {
-      if (abortSignal?.aborted) break;
-      if (chunk.text) {
-        onChunk(chunk.text);
+      if (HAS_OPENROUTER) {
+        const messages: OpenRouterMessage[] = [
+          { role: 'system', content: SYSTEM_INSTRUCTION },
+          { role: 'user', content: prompt },
+        ];
+        await callOpenRouterStream(apiKey, MODEL_NAME, messages, 0.7, onChunk, abortSignal);
+      } else {
+        const ai = new GoogleGenAI({ apiKey });
+        const response = await ai.models.generateContentStream({
+          model: "gemini-3-flash-preview",
+          contents: prompt,
+          config: {
+            temperature: 0.7,
+          },
+        });
+
+        for await (const chunk of response) {
+          if (abortSignal?.aborted) break;
+          if (chunk.text) {
+            onChunk(chunk.text);
+          }
+        }
       }
-    }
     });
   } catch (error) {
     console.error("Simplify Error:", error);
@@ -474,26 +686,35 @@ ${text}`;
   }
 };
 
+// ── 7. Compare Laws ────────────────────────────────────────────────
 export const compareLaws = async (topic1: string, topic2: string) => {
-    return await withKeyRotation(async () => {
-      const ai = getClient();
+  return await withKeyRotation(async (apiKey) => {
     const prompt = `Compare the following two legal concepts/laws in the context of Indian Law:
     1. ${topic1}
     2. ${topic2}
     
     Create a comparison table followed by a summary of key differences and similarities.`;
 
-    const response = await ai.models.generateContent({
-        model: MODEL_NAME,
+    if (HAS_OPENROUTER) {
+      const messages: OpenRouterMessage[] = [
+        { role: 'system', content: SYSTEM_INSTRUCTION },
+        { role: 'user', content: prompt },
+      ];
+      return await callOpenRouter(apiKey, MODEL_NAME, messages, 0.3);
+    } else {
+      const ai = new GoogleGenAI({ apiKey });
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
         contents: prompt,
-        config: { systemInstruction: SYSTEM_INSTRUCTION }
-    });
+        config: { systemInstruction: SYSTEM_INSTRUCTION },
+      });
 
-    return response.text;
-    });
+      return response.text;
+    }
+  });
 };
 
-// ── Scam Check / Cyber Safety ──────────────────────────────────────
+// ── 8. Scam Check / Cyber Safety ───────────────────────────────────
 export const analyzeScam = async (
   message: string,
   languageCode: string,
@@ -501,9 +722,7 @@ export const analyzeScam = async (
   abortSignal?: AbortSignal
 ) => {
   try {
-    await withKeyRotation(async () => {
-      const ai = getClient();
-
+    await withKeyRotation(async (apiKey) => {
       let prompt = `You are 🕵️ **Legal AI Scam Detector** — India's AI-powered cyber fraud analyst. A citizen has forwarded you a suspicious message, call, or link. Analyze it forensically.
 
 ## YOUR TASK:
@@ -558,25 +777,34 @@ MESSAGE TO ANALYZE:
 
 ${message}`;
 
-    if (languageCode && languageCode !== 'en') {
-      const langName = LANGUAGE_NAMES[languageCode] || languageCode;
-      prompt = `[RESPOND IN ${langName.toUpperCase()} LANGUAGE] ${prompt}`;
-    }
-
-    const response = await ai.models.generateContentStream({
-      model: MODEL_NAME,
-      contents: prompt,
-      config: {
-        temperature: 0.3,
+      if (languageCode && languageCode !== 'en') {
+        const langName = LANGUAGE_NAMES[languageCode] || languageCode;
+        prompt = `[RESPOND IN ${langName.toUpperCase()} LANGUAGE] ${prompt}`;
       }
-    });
 
-    for await (const chunk of response) {
-      if (abortSignal?.aborted) break;
-      if (chunk.text) {
-        onChunk(chunk.text);
+      if (HAS_OPENROUTER) {
+        const messages: OpenRouterMessage[] = [
+          { role: 'system', content: SYSTEM_INSTRUCTION },
+          { role: 'user', content: prompt },
+        ];
+        await callOpenRouterStream(apiKey, MODEL_NAME, messages, 0.3, onChunk, abortSignal);
+      } else {
+        const ai = new GoogleGenAI({ apiKey });
+        const response = await ai.models.generateContentStream({
+          model: "gemini-3-flash-preview",
+          contents: prompt,
+          config: {
+            temperature: 0.3,
+          },
+        });
+
+        for await (const chunk of response) {
+          if (abortSignal?.aborted) break;
+          if (chunk.text) {
+            onChunk(chunk.text);
+          }
+        }
       }
-    }
     });
   } catch (error) {
     console.error("Scam Check Error:", error);
@@ -584,17 +812,15 @@ ${message}`;
   }
 };
 
-// ── Legal-Flow (Visual Roadmap / Flowchart Generator) ──────────────
+// ── 9. Legal-Flow (Visual Roadmap / Flowchart Generator) ───────────
 export const generateLegalFlowchart = async (
   query: string,
   languageCode: string,
   abortSignal?: AbortSignal
 ): Promise<{ mermaid: string; explanation: string }> => {
   try {
-    return await withKeyRotation(async () => {
-      const ai = getClient();
-
-    let prompt = `You are **Legal AI Legal-Flow**, an Indian legal process visualizer. The citizen wants a step-by-step visual roadmap for a legal process.
+    return await withKeyRotation(async (apiKey) => {
+      let prompt = `You are **Legal AI Legal-Flow**, an Indian legal process visualizer. The citizen wants a step-by-step visual roadmap for a legal process.
 
 ## YOUR TASK:
 Generate a Mermaid.js flowchart for the given legal process AND a brief text explanation.
@@ -644,34 +870,43 @@ flowchart TD
 ## NOW GENERATE FOR:
 ${query}`;
 
-    if (languageCode && languageCode !== 'en') {
-      const langName = LANGUAGE_NAMES[languageCode] || languageCode;
-      prompt = `[RESPOND IN ${langName.toUpperCase()} LANGUAGE but keep Mermaid node IDs in English letters A-Z. Node text can be in ${langName}.] ${prompt}`;
-    }
+      if (languageCode && languageCode !== 'en') {
+        const langName = LANGUAGE_NAMES[languageCode] || languageCode;
+        prompt = `[RESPOND IN ${langName.toUpperCase()} LANGUAGE but keep Mermaid node IDs in English letters A-Z. Node text can be in ${langName}.] ${prompt}`;
+      }
 
-    const response = await ai.models.generateContent({
-      model: MODEL_NAME,
-      contents: prompt,
-      config: {
-        temperature: 0.2,
-      },
-    });
+      let raw = '';
+      if (HAS_OPENROUTER) {
+        const messages: OpenRouterMessage[] = [
+          { role: 'system', content: SYSTEM_INSTRUCTION },
+          { role: 'user', content: prompt },
+        ];
+        raw = await callOpenRouter(apiKey, MODEL_NAME, messages, 0.2, abortSignal);
+      } else {
+        const ai = new GoogleGenAI({ apiKey });
+        const response = await ai.models.generateContent({
+          model: "gemini-3-flash-preview",
+          contents: prompt,
+          config: {
+            temperature: 0.2,
+          },
+        });
+        raw = response.text || '';
+      }
 
-    const raw = response.text || '';
+      // Split on the marker
+      const parts = raw.split('---EXPLANATION---');
+      let mermaidCode = parts[0]?.trim() || '';
+      const explanation = parts[1]?.trim() || '';
 
-    // Split on the marker
-    const parts = raw.split('---EXPLANATION---');
-    let mermaidCode = parts[0]?.trim() || '';
-    const explanation = parts[1]?.trim() || '';
+      // Clean up mermaid code — remove any accidental fences
+      mermaidCode = mermaidCode
+        .replace(/^```mermaid\s*/i, '')
+        .replace(/^```\s*/gm, '')
+        .replace(/\s*```$/gm, '')
+        .trim();
 
-    // Clean up mermaid code — remove any accidental fences
-    mermaidCode = mermaidCode
-      .replace(/^```mermaid\s*/i, '')
-      .replace(/^```\s*/gm, '')
-      .replace(/\s*```$/gm, '')
-      .trim();
-
-    return { mermaid: mermaidCode, explanation };
+      return { mermaid: mermaidCode, explanation };
     });
   } catch (error) {
     console.error("Legal-Flow Error:", error);
@@ -679,7 +914,7 @@ ${query}`;
   }
 };
 
-// ── Case Study Analysis ────────────────────────────────────────────
+// ── 10. Case Study Analysis ────────────────────────────────────────
 export const generateCaseStudy = async (
   query: string,
   languageCode: string,
@@ -787,22 +1022,30 @@ ${query}`;
       prompt = `[RESPOND IN ${langName.toUpperCase()} LANGUAGE but keep case citations, section numbers, and Mermaid code in English] ${prompt}`;
     }
 
-    await withKeyRotation(async () => {
-      const ai = getClient();
+    await withKeyRotation(async (apiKey) => {
       if (abortSignal?.aborted) throw new DOMException('Aborted', 'AbortError');
 
-      const response = await ai.models.generateContentStream({
-        model: MODEL_NAME,
-        contents: prompt,
-        config: {
-          temperature: 0.3,
-        },
-      });
+      if (HAS_OPENROUTER) {
+        const messages: OpenRouterMessage[] = [
+          { role: 'system', content: SYSTEM_INSTRUCTION },
+          { role: 'user', content: prompt },
+        ];
+        await callOpenRouterStream(apiKey, MODEL_NAME, messages, 0.3, onChunk, abortSignal);
+      } else {
+        const ai = new GoogleGenAI({ apiKey });
+        const response = await ai.models.generateContentStream({
+          model: "gemini-3-flash-preview",
+          contents: prompt,
+          config: {
+            temperature: 0.3,
+          },
+        });
 
-      for await (const chunk of response) {
-        if (abortSignal?.aborted) break;
-        if (chunk.text) {
-          onChunk(chunk.text);
+        for await (const chunk of response) {
+          if (abortSignal?.aborted) break;
+          if (chunk.text) {
+            onChunk(chunk.text);
+          }
         }
       }
     });
@@ -813,7 +1056,7 @@ ${query}`;
   }
 };
 
-// ── Judgment Analyzer (PDF text → structured analysis) ─────────────
+// ── 11. Judgment Analyzer (PDF text → structured analysis) ─────────
 export const analyzeJudgment = async (
   judgmentText: string,
   onChunk: (text: string) => void,
@@ -822,9 +1065,7 @@ export const analyzeJudgment = async (
   try {
     let fullResponse = '';
 
-    await withKeyRotation(async () => {
-      const ai = getClient();
-
+    await withKeyRotation(async (apiKey) => {
       const prompt = `You are **Legal AI Judgment Analyzer** — an expert Indian legal AI that dissects Supreme Court judgments.
 
 You will receive the full text of an Indian court judgment. Analyze it and return a **strictly valid JSON** object with the following structure. Return ONLY the JSON — no markdown fences, no explanation outside the JSON.
@@ -882,30 +1123,49 @@ Return ONLY valid JSON. No markdown. No code fences. No commentary before or aft
 
 ${judgmentText.slice(0, 80000)}`;
 
-      const response = await ai.models.generateContentStream({
-        model: MODEL_NAME,
-        contents: prompt,
-        config: {
-          temperature: 0.1,
-          responseMimeType: 'application/json',
-        },
-      });
+      if (HAS_OPENROUTER) {
+        const messages: OpenRouterMessage[] = [
+          { role: 'system', content: SYSTEM_INSTRUCTION },
+          { role: 'user', content: prompt },
+        ];
+        await callOpenRouterStream(
+          apiKey,
+          MODEL_NAME,
+          messages,
+          0.1,
+          (chunk) => {
+            fullResponse += chunk;
+            onChunk(chunk);
+          },
+          abortSignal,
+          true
+        );
+      } else {
+        const ai = new GoogleGenAI({ apiKey });
+        const response = await ai.models.generateContentStream({
+          model: "gemini-3-flash-preview",
+          contents: prompt,
+          config: {
+            temperature: 0.1,
+            responseMimeType: 'application/json',
+          },
+        });
 
-      for await (const chunk of response) {
-        if (abortSignal?.aborted) break;
-        if (chunk.text) {
-          fullResponse += chunk.text;
-          onChunk(chunk.text);
+        for await (const chunk of response) {
+          if (abortSignal?.aborted) break;
+          if (chunk.text) {
+            fullResponse += chunk.text;
+            onChunk(chunk.text);
+          }
         }
       }
     });
 
     // Parse the JSON
     try {
-      // Clean up any stray markdown fences
       let cleaned = fullResponse.trim();
       if (cleaned.startsWith('```')) {
-        cleaned = cleaned.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+        cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
       }
       return JSON.parse(cleaned) as JudgmentAnalysis;
     } catch (parseErr) {
@@ -919,16 +1179,14 @@ ${judgmentText.slice(0, 80000)}`;
   }
 };
 
-// ── AI Search: search across judgment text snippets ────────────────
+// ── 12. AI Search: search across judgment text snippets ───────────
 export const aiSearchJudgments = async (
   query: string,
   caseSnippets: { id: string; text: string }[],
   abortSignal?: AbortSignal
 ): Promise<string[]> => {
   try {
-    return await withKeyRotation(async () => {
-      const ai = getClient();
-
+    return await withKeyRotation(async (apiKey) => {
       const snippetList = caseSnippets
         .map((s, i) => `[ID:${s.id}]\n${s.text.slice(0, 500)}`)
         .join('\n---\n');
@@ -942,21 +1200,31 @@ ${snippetList}
 
 Return ONLY a JSON array of ID strings, e.g.: ["10001-2023", "judis-12345"]. No explanation.`;
 
-      const response = await ai.models.generateContent({
-        model: MODEL_NAME,
-        contents: prompt,
-        config: {
-          temperature: 0.1,
-          responseMimeType: 'application/json',
-        },
-      });
-
-      const raw = response.text?.trim() || '[]';
-      try {
-        return JSON.parse(raw) as string[];
-      } catch {
-        return [];
+      let raw = '';
+      if (HAS_OPENROUTER) {
+        const messages: OpenRouterMessage[] = [
+          { role: 'user', content: prompt },
+        ];
+        raw = await callOpenRouter(apiKey, MODEL_NAME, messages, 0.1, abortSignal, true);
+      } else {
+        const ai = new GoogleGenAI({ apiKey });
+        const response = await ai.models.generateContent({
+          model: "gemini-3-flash-preview",
+          contents: prompt,
+          config: {
+            temperature: 0.1,
+            responseMimeType: 'application/json',
+          },
+        });
+        raw = response.text || '';
       }
+
+      const cleaned = (raw || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+      const match = cleaned.match(/\[[\s\S]*\]/);
+      if (match) {
+        return JSON.parse(match[0]) as string[];
+      }
+      return JSON.parse(cleaned) as string[];
     });
   } catch (error) {
     console.error("AI Search Error:", error);

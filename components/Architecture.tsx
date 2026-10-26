@@ -9,7 +9,7 @@ const TEAM_MEMBERS = [
 
 const TECH_STACK = [
   { category: 'Frontend', items: ['React 19', 'TypeScript', 'Vite', 'Tailwind CSS'] },
-  { category: 'AI', items: ['Google Gemini API'] },
+  { category: 'AI', items: ['OpenRouter API', 'Google Gemini'] },
   { category: 'Auth', items: ['Firebase (Email/Password, Google)'] },
   { category: 'Content', items: ['React Markdown', 'Mermaid', 'React Router'] },
 ];

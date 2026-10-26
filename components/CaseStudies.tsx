@@ -154,7 +154,7 @@ export const CaseStudies: React.FC = () => {
     } catch (err: any) {
       if (err.name !== 'AbortError') {
         const msg = err.message?.includes('Rate limit') || err.message?.includes('429')
-          ? '\n\n⏳ **Rate Limit Reached** — The free Gemini API has a request quota. Please wait ~1 minute and try again.'
+          ? '\n\n⏳ **Rate Limit Reached** — The API has hit a request quota. Please wait ~1 minute and try again.'
           : '\n\n❌ An error occurred. Please try again.';
         setResult((prev) => prev + msg);
       }
